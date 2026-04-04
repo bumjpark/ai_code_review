@@ -1,0 +1,71 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: backend
+    env_file:
+      - .env
+    environment:
+      RAG_SERVICE_URL: http://rag:8001
+      LANGGRAPH_SERVICE_URL: http://langgraph:8002
+    ports:
+      - "8000:8000"
+    depends_on:
+      - rag
+      - langgraph
+    restart: unless-stopped
+
+  langgraph:
+    build:
+      context: .
+      dockerfile: langgraph_layer/Dockerfile
+    container_name: langgraph
+    env_file:
+      - .env
+    environment:
+      RAG_SERVICE_URL: http://rag:8001
+    ports:
+      - "8002:8002"
+    depends_on:
+      - rag
+    restart: unless-stopped
+
+  rag:
+    build:
+      context: .
+      dockerfile: rag_layer/Dockerfile
+    container_name: rag
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    ports:
+      - "8001:8001"
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
